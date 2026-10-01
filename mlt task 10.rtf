@@ -1,0 +1,569 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 #task 10\par
+VTU32117\par
+M.yamuna sri\par
+s# ============================================================\par
+# HYPERPARAMETER TUNING OF MLP CLASSIFIER\par
+# Breast Cancer Wisconsin Dataset\par
+# ============================================================\par
+\par
+# If required, run this first in Google Colab/Jupyter:\par
+# !pip install tensorflow scikit-learn numpy\par
+\par
+\par
+# ============================================================\par
+# STEP 1: IMPORT LIBRARIES\par
+# ============================================================\par
+\par
+import numpy as np\par
+import tensorflow as tf\par
+\par
+from tensorflow.keras.models import Sequential\par
+from tensorflow.keras.layers import Dense, Input\par
+from tensorflow.keras.optimizers import Adam, SGD\par
+\par
+from sklearn.datasets import load_breast_cancer\par
+from sklearn.model_selection import train_test_split\par
+from sklearn.preprocessing import StandardScaler\par
+from sklearn.metrics import accuracy_score\par
+\par
+\par
+# Set random seed\par
+np.random.seed(42)\par
+tf.random.set_seed(42)\par
+\par
+\par
+# ============================================================\par
+# STEP 2: LOAD DATASET\par
+# ============================================================\par
+\par
+data = load_breast_cancer()\par
+\par
+X = data.data\par
+y = data.target\par
+\par
+print("Dataset loaded successfully")\par
+print("Number of samples :", X.shape[0])\par
+print("Number of features:", X.shape[1])\par
+\par
+\par
+# ============================================================\par
+# STEP 3: SPLIT DATASET\par
+# ============================================================\par
+\par
+X_train, X_test, y_train, y_test = train_test_split(\par
+    X,\par
+    y,\par
+    test_size=0.20,\par
+    random_state=42,\par
+    stratify=y\par
+)\par
+\par
+print("\\nTraining samples:", X_train.shape[0])\par
+print("Testing samples :", X_test.shape[0])\par
+\par
+\par
+# ============================================================\par
+# STEP 4: STANDARDIZE FEATURES\par
+# ============================================================\par
+\par
+scaler = StandardScaler()\par
+\par
+X_train = scaler.fit_transform(X_train)\par
+X_test = scaler.transform(X_test)\par
+\par
+print("\\nFeature standardization completed.")\par
+\par
+\par
+# ============================================================\par
+# STEP 5: DEFINE MLP MODEL\par
+# ============================================================\par
+\par
+def create_mlp(\par
+    hidden_units=16,\par
+    activation="relu",\par
+    optimizer_name="adam"\par
+):\par
+\par
+    model = Sequential([\par
+        \par
+        # Input layer\par
+        Input(shape=(30,)),\par
+\par
+        # First hidden layer\par
+        Dense(\par
+            hidden_units,\par
+            activation=activation\par
+        ),\par
+\par
+        # Second hidden layer\par
+        Dense(\par
+            hidden_units,\par
+            activation=activation\par
+        ),\par
+\par
+        # Output layer\par
+        Dense(\par
+            1,\par
+            activation="sigmoid"\par
+        )\par
+    ])\par
+\par
+    # Select optimizer\par
+    if optimizer_name == "adam":\par
+        optimizer = Adam()\par
+\par
+    elif optimizer_name == "sgd":\par
+        optimizer = SGD()\par
+\par
+    # Compile model\par
+    model.compile(\par
+        optimizer=optimizer,\par
+        loss="binary_crossentropy",\par
+        metrics=["accuracy"]\par
+    )\par
+\par
+    return model\par
+\par
+\par
+# ============================================================\par
+# STEP 6: BASELINE MODEL\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("BASELINE MLP")\par
+print("========================================")\par
+\par
+baseline_model = create_mlp(\par
+    hidden_units=16,\par
+    activation="relu",\par
+    optimizer_name="adam"\par
+)\par
+\par
+baseline_model.fit(\par
+    X_train,\par
+    y_train,\par
+    epochs=10,\par
+    batch_size=32,\par
+    verbose=0\par
+)\par
+\par
+baseline_loss, baseline_accuracy = baseline_model.evaluate(\par
+    X_test,\par
+    y_test,\par
+    verbose=0\par
+)\par
+\par
+print(\par
+    f"Baseline Test Accuracy: "\par
+    f"\{baseline_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"Baseline Test Loss: "\par
+    f"\{baseline_loss:.4f\}"\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 7: DEFINE HYPERPARAMETERS\par
+# ============================================================\par
+\par
+hidden_units_list = [8, 16, 32]\par
+\par
+activation_list = [\par
+    "relu",\par
+    "tanh"\par
+]\par
+\par
+optimizer_list = [\par
+    "adam",\par
+    "sgd"\par
+]\par
+\par
+batch_size_list = [\par
+    16,\par
+    32\par
+]\par
+\par
+epochs_list = [\par
+    10,\par
+    20\par
+]\par
+\par
+\par
+# ============================================================\par
+# STEP 8: GRID SEARCH\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("GRID SEARCH")\par
+print("========================================")\par
+\par
+best_accuracy = 0\par
+best_params = None\par
+\par
+grid_results = []\par
+\par
+combination_number = 0\par
+\par
+for hidden_units in hidden_units_list:\par
+\par
+    for activation in activation_list:\par
+\par
+        for optimizer_name in optimizer_list:\par
+\par
+            for batch_size in batch_size_list:\par
+\par
+                for epochs in epochs_list:\par
+\par
+                    combination_number += 1\par
+\par
+                    print(\par
+                        f"Testing combination "\par
+                        f"\{combination_number\}/48"\par
+                    )\par
+\par
+                    # Create model\par
+                    model = create_mlp(\par
+                        hidden_units=hidden_units,\par
+                        activation=activation,\par
+                        optimizer_name=optimizer_name\par
+                    )\par
+\par
+                    # Train model\par
+                    model.fit(\par
+                        X_train,\par
+                        y_train,\par
+                        epochs=epochs,\par
+                        batch_size=batch_size,\par
+                        verbose=0\par
+                    )\par
+\par
+                    # Evaluate model\par
+                    loss, accuracy = model.evaluate(\par
+                        X_test,\par
+                        y_test,\par
+                        verbose=0\par
+                    )\par
+\par
+                    # Store result\par
+                    grid_results.append(\{\par
+                        "hidden_units": hidden_units,\par
+                        "activation": activation,\par
+                        "optimizer": optimizer_name,\par
+                        "batch_size": batch_size,\par
+                        "epochs": epochs,\par
+                        "accuracy": accuracy\par
+                    \})\par
+\par
+                    # Check best model\par
+                    if accuracy > best_accuracy:\par
+\par
+                        best_accuracy = accuracy\par
+\par
+                        best_params = \{\par
+                            "hidden_units": hidden_units,\par
+                            "activation": activation,\par
+                            "optimizer": optimizer_name,\par
+                            "batch_size": batch_size,\par
+                            "epochs": epochs\par
+                        \}\par
+\par
+\par
+# ============================================================\par
+# STEP 9: DISPLAY BEST GRID SEARCH PARAMETERS\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("BEST GRID SEARCH RESULT")\par
+print("========================================")\par
+\par
+print(\par
+    "Best Hidden Units :",\par
+    best_params["hidden_units"]\par
+)\par
+\par
+print(\par
+    "Best Activation   :",\par
+    best_params["activation"]\par
+)\par
+\par
+print(\par
+    "Best Optimizer    :",\par
+    best_params["optimizer"]\par
+)\par
+\par
+print(\par
+    "Best Batch Size   :",\par
+    best_params["batch_size"]\par
+)\par
+\par
+print(\par
+    "Best Epochs       :",\par
+    best_params["epochs"]\par
+)\par
+\par
+print(\par
+    f"Best Grid Search Accuracy: "\par
+    f"\{best_accuracy * 100:.2f\}%"\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 10: RANDOM SEARCH\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("RANDOM SEARCH")\par
+print("========================================")\par
+\par
+# Create all possible combinations\par
+all_combinations = []\par
+\par
+for hidden_units in hidden_units_list:\par
+\par
+    for activation in activation_list:\par
+\par
+        for optimizer_name in optimizer_list:\par
+\par
+            for batch_size in batch_size_list:\par
+\par
+                for epochs in epochs_list:\par
+\par
+                    all_combinations.append(\{\par
+                        "hidden_units": hidden_units,\par
+                        "activation": activation,\par
+                        "optimizer": optimizer_name,\par
+                        "batch_size": batch_size,\par
+                        "epochs": epochs\par
+                    \})\par
+\par
+\par
+# Randomly select 5 combinations\par
+np.random.seed(42)\par
+\par
+random_indices = np.random.choice(\par
+    len(all_combinations),\par
+    size=5,\par
+    replace=False\par
+)\par
+\par
+\par
+random_best_accuracy = 0\par
+random_best_params = None\par
+\par
+\par
+# Test selected combinations\par
+for i, index in enumerate(random_indices):\par
+\par
+    params = all_combinations[index]\par
+\par
+    print(\par
+        f"\\nRandom Search Combination "\par
+        f"\{i + 1\}/5"\par
+    )\par
+\par
+    print(params)\par
+\par
+    # Create model\par
+    model = create_mlp(\par
+        hidden_units=params["hidden_units"],\par
+        activation=params["activation"],\par
+        optimizer_name=params["optimizer"]\par
+    )\par
+\par
+    # Train model\par
+    model.fit(\par
+        X_train,\par
+        y_train,\par
+        epochs=params["epochs"],\par
+        batch_size=params["batch_size"],\par
+        verbose=0\par
+    )\par
+\par
+    # Evaluate model\par
+    loss, accuracy = model.evaluate(\par
+        X_test,\par
+        y_test,\par
+        verbose=0\par
+    )\par
+\par
+    print(\par
+        f"Accuracy: \{accuracy * 100:.2f\}%"\par
+    )\par
+\par
+    # Check best random-search model\par
+    if accuracy > random_best_accuracy:\par
+\par
+        random_best_accuracy = accuracy\par
+\par
+        random_best_params = params.copy()\par
+\par
+\par
+# ============================================================\par
+# STEP 11: DISPLAY RANDOM SEARCH RESULT\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("BEST RANDOM SEARCH RESULT")\par
+print("========================================")\par
+\par
+print(\par
+    "Best Hidden Units :",\par
+    random_best_params["hidden_units"]\par
+)\par
+\par
+print(\par
+    "Best Activation   :",\par
+    random_best_params["activation"]\par
+)\par
+\par
+print(\par
+    "Best Optimizer    :",\par
+    random_best_params["optimizer"]\par
+)\par
+\par
+print(\par
+    "Best Batch Size   :",\par
+    random_best_params["batch_size"]\par
+)\par
+\par
+print(\par
+    "Best Epochs       :",\par
+    random_best_params["epochs"]\par
+)\par
+\par
+print(\par
+    f"Best Random Search Accuracy: "\par
+    f"\{random_best_accuracy * 100:.2f\}%"\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 12: TRAIN FINAL OPTIMIZED MODEL\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("FINAL OPTIMIZED MODEL")\par
+print("========================================")\par
+\par
+optimized_model = create_mlp(\par
+    hidden_units=best_params["hidden_units"],\par
+    activation=best_params["activation"],\par
+    optimizer_name=best_params["optimizer"]\par
+)\par
+\par
+\par
+# Train using best Grid Search parameters\par
+optimized_model.fit(\par
+    X_train,\par
+    y_train,\par
+    epochs=best_params["epochs"],\par
+    batch_size=best_params["batch_size"],\par
+    verbose=0\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 13: EVALUATE OPTIMIZED MODEL\par
+# ============================================================\par
+\par
+optimized_loss, optimized_accuracy = (\par
+    optimized_model.evaluate(\par
+        X_test,\par
+        y_test,\par
+        verbose=0\par
+    )\par
+)\par
+\par
+\par
+print(\par
+    f"Optimized Test Accuracy: "\par
+    f"\{optimized_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"Optimized Test Loss: "\par
+    f"\{optimized_loss:.4f\}"\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 14: MODEL COMPARISON\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("MODEL COMPARISON")\par
+print("========================================")\par
+\par
+print(\par
+    f"Baseline Accuracy  : "\par
+    f"\{baseline_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"Grid Search Accuracy: "\par
+    f"\{best_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"Random Search Accuracy: "\par
+    f"\{random_best_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"Optimized Accuracy : "\par
+    f"\{optimized_accuracy * 100:.2f\}%"\par
+)\par
+\par
+print(\par
+    f"\\nBaseline Loss      : "\par
+    f"\{baseline_loss:.4f\}"\par
+)\par
+\par
+print(\par
+    f"Optimized Loss     : "\par
+    f"\{optimized_loss:.4f\}"\par
+)\par
+\par
+\par
+# ============================================================\par
+# STEP 15: ACCURACY IMPROVEMENT\par
+# ============================================================\par
+\par
+improvement = (\par
+    optimized_accuracy - baseline_accuracy\par
+) * 100\par
+\par
+print(\par
+    f"\\nAccuracy Improvement: "\par
+    f"\{improvement:.2f\}%"\par
+)\par
+\par
+\par
+# ============================================================\par
+# FINAL RESULT\par
+# ============================================================\par
+\par
+print("\\n========================================")\par
+print("FINAL RESULT")\par
+print("========================================")\par
+\par
+print(\par
+    "MLP classification using the Breast Cancer "\par
+    "Wisconsin dataset was completed successfully."\par
+)\par
+\par
+print(\par
+    "Hyperparameter tuning was performed using "\par
+    "Grid Search and Random Search."\par
+)\par
+\par
+print(\par
+    f"Final Optimized Accuracy: "\par
+    f"\{optimized_accuracy * 100:.2f\}%"\par
+)\par
+}
+ 
